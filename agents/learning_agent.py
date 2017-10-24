@@ -106,6 +106,13 @@ class SmartAgent(base_agent.BaseAgent):
         self.previous_action = None
         self.previous_state = None
 
+        # From Base Agent
+        self.reward = 0
+        self.episodes = 0
+        self.steps = 0
+        self.obs_spec = None
+        self.action_spec = None
+
     def transformLocation(self, x, x_distance, y, y_distance):
         if not self.base_top_left:
             return [x - x_distance, y - y_distance]
