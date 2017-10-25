@@ -16,7 +16,16 @@ import os
 from pysc2.env import available_actions_printer
 from pysc2.env import run_loop
 from pysc2.env import sc2_env
+from pysc2.maps import lib
 
+class GithubGame(lib.Map):
+    directory = (os.path.dirname(os.path.realpath(__file__)) if os.path.dirname(os.path.realpath(__file__)).
+                 endswith("\\") else os.path.dirname(os.path.realpath(__file__)) + "\\") + "maps\\"
+    download = "https://github.com/AdditionalPylons2017/StarcraftAI"
+    players = 1
+    score_index = 0
+    game_steps_per_episode = 0
+    step_mul = 8
 
 def is_admin():
     try:
@@ -89,7 +98,7 @@ def find_starcraft_minigame_dir():
 
 
 def main():
-    if os.name != 'nt' or is_admin():
+    if True:#if os.name != 'nt' or is_admin():
         mapFileFull = mapFile = agentFile = args = ""
         mamaPath = os.path.dirname(os.path.realpath(__file__))
 
@@ -109,7 +118,10 @@ def main():
         if not mapFile.endswith(".SC2Map"):
             mapFileFull = mapFile + ".SC2Map"
 
-        os.system('cp \"' + mamaPath + "maps\\" + mapFileFull + "\" \"" + starcraft_dir + mapFileFull + "\"")
+        #os.system('cp \"' + mamaPath + "maps\\" + mapFileFull + "\" \"" + starcraft_dir + mapFileFull + "\"")
+
+        class NewMap(GithubGame):
+            filename = mapFile
 
         sys.path.append(mamaPath + "agents\\" + agentFile.split(".")[0])
         import pysc2.bin.agent as agent
