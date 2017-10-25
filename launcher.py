@@ -98,44 +98,41 @@ def find_starcraft_minigame_dir():
 
 
 def main():
-    if True:#if os.name != 'nt' or is_admin():
-        mapFileFull = mapFile = agentFile = args = ""
-        mamaPath = os.path.dirname(os.path.realpath(__file__))
+    mapFileFull = mapFile = agentFile = args = ""
+    mamaPath = os.path.dirname(os.path.realpath(__file__))
 
-        if not mamaPath.endswith("\\"):
-            mamaPath = mamaPath + "\\"
+    if not mamaPath.endswith("\\"):
+        mamaPath = mamaPath + "\\"
 
-        starcraft_dir = find_starcraft_minigame_dir()
+    starcraft_dir = find_starcraft_minigame_dir()
 
-        if not os.path.exists("launcher.options"):
-            raise EnvironmentError("Cannot find launcher.options. See header of launcher.py on how to use.");
+    if not os.path.exists("launcher.options"):
+        raise EnvironmentError("Cannot find launcher.options. See header of launcher.py on how to use.");
 
-        with open("launcher.options") as f:
-            mapFile = f.readline().replace("\n", "")
-            agentFile = f.readline().replace("\n", "")
-            args = f.readline().replace("\n", "")
+    with open("launcher.options") as f:
+        mapFile = f.readline().replace("\n", "")
+        agentFile = f.readline().replace("\n", "")
+        args = f.readline().replace("\n", "")
 
-        if not mapFile.endswith(".SC2Map"):
-            mapFileFull = mapFile + ".SC2Map"
+    if not mapFile.endswith(".SC2Map"):
+        mapFileFull = mapFile + ".SC2Map"
 
-        #os.system('cp \"' + mamaPath + "maps\\" + mapFileFull + "\" \"" + starcraft_dir + mapFileFull + "\"")
+    class NewMap(GithubGame):
+        filename = mapFile
 
-        class NewMap(GithubGame):
-            filename = mapFile
+    globals()[mapFile] = type(mapFile, (GithubGame,), dict(filename=mapFile))
 
-        sys.path.append(mamaPath + "agents\\" + agentFile.split(".")[0])
-        import pysc2.bin.agent as agent
-        import importlib
-        from pysc2 import maps
-        module_name, classname = ("agents." + agentFile).rsplit(".", 1)
-        mod = getattr(importlib.import_module(module_name), classname)
-        #agent.run_thread(mod, mapFile, False)
-        maps.get(mapFile)
-        run_thread(mod, mapFile, getopts(args))
+    sys.path.append(mamaPath + "agents\\" + agentFile.split(".")[0])
+    import pysc2.bin.agent as agent
+    import importlib
+    from pysc2 import maps
+    module_name, classname = ("agents." + agentFile).rsplit(".", 1)
+    mod = getattr(importlib.import_module(module_name), classname)
+    #agent.run_thread(mod, mapFile, False)
+    maps.get(mapFile)
+    run_thread(mod, mapFile, getopts(args))
 
-        os.system('pause')
-    else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, sys.argv[0], None, 1)
+    os.system('pause')
 
 
 
