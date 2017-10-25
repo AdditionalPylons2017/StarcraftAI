@@ -9,7 +9,6 @@
 #    Example: "--agent_race T --screen_resolution 84"
 # 4. Run launcher.py. Also Python should be in the path.
 
-import ctypes
 import sys
 import os
 
@@ -17,6 +16,10 @@ from pysc2.env import available_actions_printer
 from pysc2.env import run_loop
 from pysc2.env import sc2_env
 from pysc2.maps import lib
+
+import gflags
+FLAGS = gflags.FLAGS
+FLAGS(sys.argv)
 
 class GithubGame(lib.Map):
     directory = (os.path.dirname(os.path.realpath(__file__)) if os.path.dirname(os.path.realpath(__file__)).
@@ -26,12 +29,6 @@ class GithubGame(lib.Map):
     score_index = 0
     game_steps_per_episode = 0
     step_mul = 8
-
-def is_admin():
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
 
 
 def run_thread(agent_cls, map_name, args):
@@ -50,7 +47,6 @@ def run_thread(agent_cls, map_name, args):
         run_loop.run_loop([agent], env, args["max_agent_steps"])
         if args["save_replay"]:
             env.save_replay(agent_cls.__name__)
-
 
 
 def getopts(argv2):
@@ -117,18 +113,14 @@ def main():
     if not mapFile.endswith(".SC2Map"):
         mapFileFull = mapFile + ".SC2Map"
 
-    class NewMap(GithubGame):
-        filename = mapFile
-
-    globals()[mapFile] = type(mapFile, (GithubGame,), dict(filename=mapFile))
+    if os.path.exists(mapFileFull):
+        globals()[mapFile] = type(mapFile, (GithubGame,), dict(filename=mapFile))
 
     sys.path.append(mamaPath + "agents\\" + agentFile.split(".")[0])
-    import pysc2.bin.agent as agent
     import importlib
     from pysc2 import maps
     module_name, classname = ("agents." + agentFile).rsplit(".", 1)
     mod = getattr(importlib.import_module(module_name), classname)
-    #agent.run_thread(mod, mapFile, False)
     maps.get(mapFile)
     run_thread(mod, mapFile, getopts(args))
 
