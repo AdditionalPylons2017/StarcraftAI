@@ -1,4 +1,7 @@
-import random
+## Beau Miller
+## Follows tutorial from https://chatbotslife.com/building-a-smart-pysc2-agent-cdc269cb095d
+
+# import random
 import math
 
 import numpy as np
