@@ -114,9 +114,11 @@ def main():
         sys.path.append(mamaPath + "agents\\" + agentFile.split(".")[0])
         import pysc2.bin.agent as agent
         import importlib
+        from pysc2 import maps
         module_name, classname = ("agents." + agentFile).rsplit(".", 1)
         mod = getattr(importlib.import_module(module_name), classname)
         #agent.run_thread(mod, mapFile, False)
+        maps.get(mapFile)
         run_thread(mod, mapFile, getopts(args))
 
         os.system('pause')
