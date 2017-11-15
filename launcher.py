@@ -113,9 +113,10 @@ def main():
     if not mapFile.endswith(".SC2Map"):
         mapFileFull = mapFile + ".SC2Map"
 
-    if os.path.exists(mapFileFull):
+    if os.path.exists(mamaPath + "\\maps\\" + mapFileFull):
         globals()[mapFile] = type(mapFile, (GithubGame,), dict(filename=mapFile))
 
+    sys.path.append(mamaPath + "maps\\")
     sys.path.append(mamaPath + "agents\\" + agentFile.split(".")[0])
     import importlib
     from pysc2 import maps
