@@ -1,4 +1,4 @@
-from StarcraftAI.agents.learning_agent import QLearningTable
+from agents.learning_agent import QLearningTable
 
 def test_QLearnTable():
 
