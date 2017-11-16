@@ -1,4 +1,4 @@
-'''
+
 
 from StarcraftAI.agents.learning_agent import QLearningTable
 
@@ -40,7 +40,7 @@ def test_QLearnTable():
 
     assert rl_action == 2
 
-'''
+
 def test_TravisCI_test():
 
     assert True
