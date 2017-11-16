@@ -43,3 +43,5 @@ def test_QLearnTable():
 def test_TravisCI_test():
 
     assert True
+
+print("Test Successful")
