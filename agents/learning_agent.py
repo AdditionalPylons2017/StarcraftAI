@@ -1,7 +1,8 @@
 ## Beau Miller
 ## Follows tutorial from https://chatbotslife.com/building-a-smart-pysc2-agent-cdc269cb095d
+## originally written by Steven Brown
 
-# import random
+import random
 import math
 
 import numpy as np
@@ -43,16 +44,11 @@ ACTION_ATTACK = 'attack'
 
 smart_actions = [
     ACTION_DO_NOTHING,
-    ACTION_SELECT_SCV,
-    ACTION_BUILD_SUPPLY_DEPOT,
-    ACTION_BUILD_BARRACKS,
-    ACTION_SELECT_BARRACKS,
-    ACTION_BUILD_MARINE,
     ACTION_SELECT_ARMY,
     ACTION_ATTACK,
 ]
 
-KILL_UNIT_REWARD = 0.2
+KILL_UNIT_REWARD = 1
 KILL_BUILDING_REWARD = 0.5
 
 
