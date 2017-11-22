@@ -24,6 +24,8 @@ _PLAYER_RELATIVE = features.SCREEN_FEATURES.player_relative.index
 _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
 _PLAYER_ID = features.SCREEN_FEATURES.player_id.index
 
+_PLAYER_HOSTILE = 4
+
 _PLAYER_SELF = 1
 
 _TERRAN_COMMANDCENTER = 18
@@ -32,6 +34,11 @@ _TERRAN_SUPPLY_DEPOT = 19
 _TERRAN_BARRACKS = 21
 
 _SCREEN = [0]
+_PLAYER_SELF = 1
+_SUPPLY_USED = 3
+_SUPPLY_MAX = 4
+_NOT_QUEUED = [0]
+_QUEUED = [1]
 
 ACTION_DO_NOTHING = 'donothing'
 ACTION_SELECT_SCV = 'selectscv'
@@ -45,8 +52,12 @@ ACTION_ATTACK = 'attack'
 smart_actions = [
     ACTION_DO_NOTHING,
     ACTION_SELECT_ARMY,
-    ACTION_ATTACK,
 ]
+
+for mm_x in range(0, 64):
+    for mm_y in range(0, 64):
+        if (mm_x + 1) % 16 == 0 and (mm_y + 1) % 16 == 0:
+            smart_actions.append(ACTION_ATTACK + '_' + str(mm_x - 8) + '_' + str(mm_y - 8))
 
 KILL_UNIT_REWARD = 1
 KILL_BUILDING_REWARD = 0.5
@@ -97,6 +108,7 @@ class QLearningTable:
 
 class SmartAgent(base_agent.BaseAgent):
     def __init__(self):
+        super(SmartAgent, self).__init__()
         self.qlearn = QLearningTable(actions=list(range(len(smart_actions))))
 
         self.previous_killed_unit_score = 0
@@ -112,7 +124,7 @@ class SmartAgent(base_agent.BaseAgent):
         self.obs_spec = None
         self.action_spec = None
 
-    def transformLocation(self, x, x_distance, y, y_distance):
+    def transformDistance(self, x, x_distance, y, y_distance):
         if not self.base_top_left:
             return [x - x_distance, y - y_distance]
 
@@ -138,12 +150,25 @@ class SmartAgent(base_agent.BaseAgent):
         killed_unit_score = obs.observation['score_cumulative'][5]
         killed_building_score = obs.observation['score_cumulative'][6]
 
-        current_state = [
-            supply_depot_count,
-            barracks_count,
-            supply_limit,
-            army_supply,
-        ]
+        current_state = np.zeros(20)
+        current_state[0] = supply_depot_count
+        current_state[1] = barracks_count
+        current_state[2] = supply_limit
+        current_state[3] = army_supply
+
+        hot_squares = np.zeros(16)
+        enemy_y, enemy_x = (obs.observation['minimap'][_PLAYER_RELATIVE] == _PLAYER_HOSTILE).nonzero()
+        for i in range(0, len(enemy_y)):
+            y = int(math.ceil((enemy_y[i] + 1) / 16))
+            x = int(math.ceil((enemy_x[i] + 1) / 16))
+
+            hot_squares[((y - 1) * 4) + (x - 1)] = 1
+
+        if not self.base_top_left:
+            hot_squares = hot_squares[::-1]
+
+        for i in range(0, 16):
+            current_state[i + 4] = hot_squares[i]
 
         if self.previous_action is not None:
             reward = 0
@@ -164,6 +189,11 @@ class SmartAgent(base_agent.BaseAgent):
         self.previous_state = current_state
         self.previous_action = rl_action
 
+        epos_x = 0
+        epos_y = 0
+        if '_' in smart_action:
+            smart_action, x, y = smart_action.split('_')
+
         if smart_action == ACTION_DO_NOTHING:
             return actions.FunctionCall(_NO_OP, [])
 
@@ -177,48 +207,14 @@ class SmartAgent(base_agent.BaseAgent):
 
                 return actions.FunctionCall(_SELECT_POINT, [_SCREEN, target])
 
-        elif smart_action == ACTION_BUILD_SUPPLY_DEPOT:
-            if _BUILD_SUPPLY_DEPOT in obs.observation['available_actions']:
-                unit_type = obs.observation['screen'][_UNIT_TYPE]
-                unit_y, unit_x = (unit_type == _TERRAN_COMMANDCENTER).nonzero()
-
-                if unit_y.any():
-                    target = self.transformLocation(int(unit_x.mean()), 0, int(unit_y.mean()), 20)
-
-                    return actions.FunctionCall(_BUILD_SUPPLY_DEPOT, [_SCREEN, target])
-
-        elif smart_action == ACTION_BUILD_BARRACKS:
-            if _BUILD_BARRACKS in obs.observation['available_actions']:
-                unit_type = obs.observation['screen'][_UNIT_TYPE]
-                unit_y, unit_x = (unit_type == _TERRAN_COMMANDCENTER).nonzero()
-
-                if unit_y.any():
-                    target = self.transformLocation(int(unit_x.mean()), 20, int(unit_y.mean()), 0)
-
-                    return actions.FunctionCall(_BUILD_BARRACKS, [_SCREEN, target])
-
-        elif smart_action == ACTION_SELECT_BARRACKS:
-            unit_type = obs.observation['screen'][_UNIT_TYPE]
-            unit_y, unit_x = (unit_type == _TERRAN_BARRACKS).nonzero()
-
-            if unit_y.any():
-                target = [int(unit_x.mean()), int(unit_y.mean())]
-
-                return actions.FunctionCall(_SELECT_POINT, [_SCREEN, target])
-
-        elif smart_action == ACTION_BUILD_MARINE:
-            if _TRAIN_MARINE in obs.observation['available_actions']:
-                return actions.FunctionCall(_TRAIN_MARINE, [[1]])
 
         elif smart_action == ACTION_SELECT_ARMY:
             if _SELECT_ARMY in obs.observation['available_actions']:
                 return actions.FunctionCall(_SELECT_ARMY, [[0]])
 
+
         elif smart_action == ACTION_ATTACK:
             if _ATTACK_MINIMAP in obs.observation["available_actions"]:
-                if self.base_top_left:
-                    return actions.FunctionCall(_ATTACK_MINIMAP, [[1], [39, 45]])
-
-                return actions.FunctionCall(_ATTACK_MINIMAP, [[1], [21, 24]])
+                return actions.FunctionCall(_ATTACK_MINIMAP, [_NOT_QUEUED, (int(x), int(y))])
 
         return actions.FunctionCall(_NO_OP, [])
