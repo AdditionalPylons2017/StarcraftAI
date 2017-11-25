@@ -4,6 +4,7 @@
 
 import random
 import math
+import time
 
 import numpy as np
 import pandas as pd
@@ -41,25 +42,21 @@ _NOT_QUEUED = [0]
 _QUEUED = [1]
 
 ACTION_DO_NOTHING = 'donothing'
-ACTION_SELECT_SCV = 'selectscv'
-ACTION_BUILD_SUPPLY_DEPOT = 'buildsupplydepot'
-ACTION_BUILD_BARRACKS = 'buildbarracks'
-ACTION_SELECT_BARRACKS = 'selectbarracks'
-ACTION_BUILD_MARINE = 'buildmarine'
 ACTION_SELECT_ARMY = 'selectarmy'
 ACTION_ATTACK = 'attack'
+ACTION_ATTACK_RANDOM_ENEMY = 'attack_randomenemy'
+ACTION_ATTACK_TOP_LEFT = 'attack_topleft'
+ACTION_ATTACK_TOP_RIGHT = 'attack_topright'
+ACTION_ATTACK_BOTTOM_LEFT = 'attack_bottomleft'
+ACTION_ATTACK_BOTTOM_RIGHT = 'attack_bottomright'
 
 smart_actions = [
     ACTION_DO_NOTHING,
     ACTION_SELECT_ARMY,
+    ACTION_ATTACK_RANDOM_ENEMY
 ]
 
-for mm_x in range(0, 64):
-    for mm_y in range(0, 64):
-        if (mm_x + 1) % 16 == 0 and (mm_y + 1) % 16 == 0:
-            smart_actions.append(ACTION_ATTACK + '_' + str(mm_x - 8) + '_' + str(mm_y - 8))
-
-KILL_UNIT_REWARD = 1
+KILL_UNIT_REWARD = 100
 KILL_BUILDING_REWARD = 0.5
 
 
@@ -132,43 +129,35 @@ class SmartAgent(base_agent.BaseAgent):
 
     def step(self, obs):
         super(SmartAgent, self).step(obs)
-
         player_y, player_x = (obs.observation['minimap'][_PLAYER_RELATIVE] == _PLAYER_SELF).nonzero()
-        self.base_top_left = 1 if player_y.any() and player_y.mean() <= 31 else 0
+        self.player_left = 1 if player_x.any() and player_x.mean() <= 31 else 0
 
-        unit_type = obs.observation['screen'][_UNIT_TYPE]
-
-        depot_y, depot_x = (unit_type == _TERRAN_SUPPLY_DEPOT).nonzero()
-        supply_depot_count = supply_depot_count = 1 if depot_y.any() else 0
-
-        barracks_y, barracks_x = (unit_type == _TERRAN_BARRACKS).nonzero()
-        barracks_count = 1 if barracks_y.any() else 0
-
-        supply_limit = obs.observation['player'][4]
         army_supply = obs.observation['player'][5]
 
         killed_unit_score = obs.observation['score_cumulative'][5]
         killed_building_score = obs.observation['score_cumulative'][6]
 
-        current_state = np.zeros(20)
-        current_state[0] = supply_depot_count
-        current_state[1] = barracks_count
-        current_state[2] = supply_limit
-        current_state[3] = army_supply
-
-        hot_squares = np.zeros(16)
+        hot_squares = [0,0,0,0]
         enemy_y, enemy_x = (obs.observation['minimap'][_PLAYER_RELATIVE] == _PLAYER_HOSTILE).nonzero()
+        enemy_positions = [(enemy_x[i], enemy_y[i]) for i in range(len(enemy_y))]
         for i in range(0, len(enemy_y)):
-            y = int(math.ceil((enemy_y[i] + 1) / 16))
-            x = int(math.ceil((enemy_x[i] + 1) / 16))
 
-            hot_squares[((y - 1) * 4) + (x - 1)] = 1
+            y = int(math.ceil((enemy_y[i]) // 32))
+            x = int(math.ceil((enemy_x[i]) // 32))
 
-        if not self.base_top_left:
-            hot_squares = hot_squares[::-1]
+            hot_squares[x + (y * 2)] = 1  # indicates which quarter of the screen an enemy is in,
+                                          # [top left, top right, bottom left, bottom right]
+        enemy_count = len(enemy_y)
 
-        for i in range(0, 16):
-            current_state[i + 4] = hot_squares[i]
+        current_state = [
+            army_supply,
+            enemy_count,
+            hot_squares[0],
+            hot_squares[1],
+            hot_squares[2],
+            hot_squares[3]
+
+        ]
 
         if self.previous_action is not None:
             reward = 0
@@ -189,32 +178,33 @@ class SmartAgent(base_agent.BaseAgent):
         self.previous_state = current_state
         self.previous_action = rl_action
 
-        epos_x = 0
-        epos_y = 0
         if '_' in smart_action:
-            smart_action, x, y = smart_action.split('_')
+            smart_action, arg = smart_action.split('_')
 
         if smart_action == ACTION_DO_NOTHING:
             return actions.FunctionCall(_NO_OP, [])
-
-        elif smart_action == ACTION_SELECT_SCV:
-            unit_type = obs.observation['screen'][_UNIT_TYPE]
-            unit_y, unit_x = (unit_type == _TERRAN_SCV).nonzero()
-
-            if unit_y.any():
-                i = random.randint(0, len(unit_y) - 1)
-                target = [unit_x[i], unit_y[i]]
-
-                return actions.FunctionCall(_SELECT_POINT, [_SCREEN, target])
 
 
         elif smart_action == ACTION_SELECT_ARMY:
             if _SELECT_ARMY in obs.observation['available_actions']:
                 return actions.FunctionCall(_SELECT_ARMY, [[0]])
 
-
         elif smart_action == ACTION_ATTACK:
             if _ATTACK_MINIMAP in obs.observation["available_actions"]:
-                return actions.FunctionCall(_ATTACK_MINIMAP, [_NOT_QUEUED, (int(x), int(y))])
+
+                if arg == 'topleft':
+                    attack_pos = (16,16)
+                elif arg == 'topright':
+                    attack_pos = (48,16)
+                elif arg == 'bottomleft':
+                    attack_pos = (16,48)
+                elif arg == 'bottomright':
+                    attack_pos = (48,48)
+                elif arg == 'randomenemy':
+                    #attack_pos = enemy_positions[np.random.randint(0,len(enemy_positions))]
+                    if len(enemy_positions) > 0:
+                        attack_pos = enemy_positions[0]
+
+                return actions.FunctionCall(_ATTACK_MINIMAP, [_NOT_QUEUED, (attack_pos[0], attack_pos[1])])
 
         return actions.FunctionCall(_NO_OP, [])
