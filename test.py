@@ -37,6 +37,7 @@ def test_QLearnTable():
     current_state = ["Start","paper"]
 
     rl_action = qlearn.choose_action(str(current_state))
+    print(qlearn.q_table)
 
     assert rl_action == 2
 
