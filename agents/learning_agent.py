@@ -56,8 +56,8 @@ smart_actions = [
     ACTION_ATTACK_RANDOM_ENEMY
 ]
 
-KILL_UNIT_REWARD = 100
-KILL_BUILDING_REWARD = 0.5
+KILL_UNIT_REWARD = 1
+LOST_TROOP_REWARD = -0.5
 
 
 # Stolen from https://github.com/MorvanZhou/Reinforcement-learning-with-tensorflow
@@ -164,7 +164,8 @@ class SmartAgent(base_agent.BaseAgent):
 
             if killed_unit_score > self.previous_killed_unit_score:
                 reward += KILL_UNIT_REWARD
-
+            elif killed_unit_score < self.previous_killed_unit_score:
+                reward -= LOST_TROOP_REWARD
 
             self.qlearn.learn(str(self.previous_state), self.previous_action, reward, str(current_state))
 
@@ -189,7 +190,7 @@ class SmartAgent(base_agent.BaseAgent):
 
         elif smart_action == ACTION_ATTACK:
             if _ATTACK_MINIMAP in obs.observation["available_actions"]:
-
+                attack_pos = (0, 0)
                 if arg == 'topleft':
                     attack_pos = (16,16)
                 elif arg == 'topright':
@@ -202,8 +203,6 @@ class SmartAgent(base_agent.BaseAgent):
                     #attack_pos = enemy_positions[np.random.randint(0,len(enemy_positions))]
                     if len(enemy_positions) > 0:
                         attack_pos = enemy_positions[0]
-                else:
-                    attack_pos = (0,0)
 
                 return actions.FunctionCall(_ATTACK_MINIMAP, [_NOT_QUEUED, (attack_pos[0], attack_pos[1])])
 
