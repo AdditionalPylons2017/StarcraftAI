@@ -1,1 +1,4 @@
 pysc2==1.1
+pytest==3.2.5
+pandas==0.20.3
+numpy==1.13.3
