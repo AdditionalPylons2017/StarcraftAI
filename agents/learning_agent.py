@@ -202,6 +202,8 @@ class SmartAgent(base_agent.BaseAgent):
                     #attack_pos = enemy_positions[np.random.randint(0,len(enemy_positions))]
                     if len(enemy_positions) > 0:
                         attack_pos = enemy_positions[0]
+                else:
+                    attack_pos = (0,0)
 
                 return actions.FunctionCall(_ATTACK_MINIMAP, [_NOT_QUEUED, (attack_pos[0], attack_pos[1])])
 
