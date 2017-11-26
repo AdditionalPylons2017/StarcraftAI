@@ -165,8 +165,6 @@ class SmartAgent(base_agent.BaseAgent):
             if killed_unit_score > self.previous_killed_unit_score:
                 reward += KILL_UNIT_REWARD
 
-            if killed_building_score > self.previous_killed_building_score:
-                reward += KILL_BUILDING_REWARD
 
             self.qlearn.learn(str(self.previous_state), self.previous_action, reward, str(current_state))
 
