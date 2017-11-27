@@ -53,7 +53,11 @@ ACTION_ATTACK_BOTTOM_RIGHT = 'attack_bottomright'
 smart_actions = [
     ACTION_DO_NOTHING,
     ACTION_SELECT_ARMY,
-    ACTION_ATTACK_RANDOM_ENEMY
+    ACTION_ATTACK_RANDOM_ENEMY,
+    ACTION_ATTACK_TOP_LEFT,
+    ACTION_ATTACK_TOP_RIGHT,
+    ACTION_ATTACK_BOTTOM_LEFT,
+    ACTION_ATTACK_BOTTOM_RIGHT
 ]
 
 KILL_UNIT_REWARD = 1
@@ -109,7 +113,7 @@ class SmartAgent(base_agent.BaseAgent):
         self.qlearn = QLearningTable(actions=list(range(len(smart_actions))))
 
         self.previous_killed_unit_score = 0
-        self.previous_killed_building_score = 0
+        self.previous_army_supply = 0
 
         self.previous_action = None
         self.previous_state = None
@@ -142,8 +146,8 @@ class SmartAgent(base_agent.BaseAgent):
         enemy_positions = [(enemy_x[i], enemy_y[i]) for i in range(len(enemy_y))]
         for i in range(0, len(enemy_y)):
 
-            y = int(math.ceil((enemy_y[i]) // 32))
-            x = int(math.ceil((enemy_x[i]) // 32))
+            y = int(math.ceil((enemy_y[i]) // 36))
+            x = int(math.ceil((enemy_x[i]) // 36))
 
             hot_squares[x + (y * 2)] = 1  # indicates which quarter of the screen an enemy is in,
                                           # [top left, top right, bottom left, bottom right]
@@ -158,14 +162,16 @@ class SmartAgent(base_agent.BaseAgent):
             hot_squares[3]
 
         ]
-
+        reward = 0
         if self.previous_action is not None:
-            reward = 0
+
 
             if killed_unit_score > self.previous_killed_unit_score:
-                reward += KILL_UNIT_REWARD
-            elif killed_unit_score < self.previous_killed_unit_score:
-                reward -= LOST_TROOP_REWARD
+                #reward += KILL_UNIT_REWARD
+                reward += killed_unit_score - self.previous_killed_unit_score
+            elif army_supply < self.previous_army_supply:
+                #reward -= LOST_TROOP_REWARD
+                reward -= (self.previous_army_supply - army_supply) * 50
 
             self.qlearn.learn(str(self.previous_state), self.previous_action, reward, str(current_state))
 
@@ -173,9 +179,12 @@ class SmartAgent(base_agent.BaseAgent):
         smart_action = smart_actions[rl_action]
 
         self.previous_killed_unit_score = killed_unit_score
-        self.previous_killed_building_score = killed_building_score
+        self.previous_army_supply = army_supply
         self.previous_state = current_state
         self.previous_action = rl_action
+
+        print(hot_squares, current_state, reward)
+        time.sleep(0.3)
 
         if '_' in smart_action:
             smart_action, arg = smart_action.split('_')
@@ -192,13 +201,13 @@ class SmartAgent(base_agent.BaseAgent):
             if _ATTACK_MINIMAP in obs.observation["available_actions"]:
                 attack_pos = (0, 0)
                 if arg == 'topleft':
-                    attack_pos = (16,16)
+                    attack_pos = (25, 32)
                 elif arg == 'topright':
-                    attack_pos = (48,16)
+                    attack_pos = (39, 32)
                 elif arg == 'bottomleft':
-                    attack_pos = (16,48)
+                    attack_pos = (25, 40)
                 elif arg == 'bottomright':
-                    attack_pos = (48,48)
+                    attack_pos = (39, 40)
                 elif arg == 'randomenemy':
                     #attack_pos = enemy_positions[np.random.randint(0,len(enemy_positions))]
                     if len(enemy_positions) > 0:
