@@ -183,8 +183,8 @@ class SmartAgent(base_agent.BaseAgent):
         self.previous_state = current_state
         self.previous_action = rl_action
 
-        print(hot_squares, current_state, reward)
-        time.sleep(0.3)
+        #print(hot_squares, current_state, reward)
+        #time.sleep(0.3)
 
         if '_' in smart_action:
             smart_action, arg = smart_action.split('_')
